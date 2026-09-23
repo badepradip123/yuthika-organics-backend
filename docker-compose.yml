@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: yuthika-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yuthika
+      POSTGRES_PASSWORD: yuthika_dev_password
+      POSTGRES_DB: yuthika_organics
+    ports:
+      - '5432:5432'
+    volumes:
+      - yuthika_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U yuthika -d yuthika_organics']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: yuthika-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://yuthika:yuthika_dev_password@postgres:5432/yuthika_organics?schema=public
+    ports:
+      - '3000:3000'
+
+volumes:
+  yuthika_pgdata:
