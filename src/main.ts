@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import * as compression from 'compression';
+import compression from 'compression';
 import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -21,17 +21,24 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
- const origins = [
-  config.get<string>('WEB_APP_URL'),
-  config.get<string>('ADMIN_APP_URL'),
-].filter(Boolean) as string[];
+  const configuredOrigins = config
+    .get<string>('CORS_ALLOWED_ORIGINS', '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
-if (isProduction && origins.length === 0) {
-  throw new Error('WEB_APP_URL or ADMIN_APP_URL must be configured in production');
-}
+  const origins = Array.from(
+    new Set(
+      [
+        ...configuredOrigins,
+        config.get<string>('WEB_APP_URL'),
+        config.get<string>('ADMIN_APP_URL'),
+      ].filter((origin): origin is string => Boolean(origin)),
+    ),
+  );
 
   app.enableCors({
-    origin: origins.length ? origins : true,
+    origin: origins,
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
