@@ -10,6 +10,8 @@ import { AdminService } from './admin.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SupabaseStorageService } from '@/storage/supabase-storage.service';
 import { ProductsService } from '@/products/products.service';
+import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+import { BadRequestException } from '@nestjs/common';
 
 class UpdateUserAdminDto {
   @IsOptional() @IsEnum(UserRole) role?: UserRole;
@@ -42,17 +44,30 @@ export class AdminController {
     return this.service.updateUser(id, dto);
   }
 
-  @Post(':id/image')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(
-  UserRole.SUPER_ADMIN,
-  UserRole.PRODUCT_ADMIN,
-)
+@Post('products/:id/image')
+@ApiOperation({ summary: 'Upload product image' })
+@ApiConsumes('multipart/form-data')
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      file: {
+        type: 'string',
+        format: 'binary',
+      },
+    },
+    required: ['file'],
+  },
+})
 @UseInterceptors(FileInterceptor('file'))
 async uploadProductImage(
   @Param('id') productId: string,
   @UploadedFile() file: Express.Multer.File,
 ) {
+  if (!file) {
+    throw new BadRequestException('Image file is required');
+  }
+
   const imageUrl =
     await this.supabaseStorageService.uploadProductImage(
       productId,
