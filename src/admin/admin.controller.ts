@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch,Post,UseInterceptors,UploadedFile, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../generated/prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -7,6 +7,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AdminService } from './admin.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { SupabaseStorageService } from '@/storage/supabase-storage.service';
+import { ProductsService } from '@/products/products.service';
 
 class UpdateUserAdminDto {
   @IsOptional() @IsEnum(UserRole) role?: UserRole;
@@ -19,7 +22,7 @@ class UpdateUserAdminDto {
 @Roles(UserRole.SUPER_ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly service: AdminService) {}
+  constructor( private readonly supabaseStorageService: SupabaseStorageService,private readonly productsService: ProductsService,private readonly service: AdminService) {}
 
   @Get('dashboard') dashboard() {
     return this.service.dashboard();
@@ -38,4 +41,32 @@ export class AdminController {
   updateUser(@Param('id') id: string, @Body() dto: UpdateUserAdminDto) {
     return this.service.updateUser(id, dto);
   }
+
+  @Post(':id/image')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(
+  UserRole.SUPER_ADMIN,
+  UserRole.PRODUCT_ADMIN,
+)
+@UseInterceptors(FileInterceptor('file'))
+async uploadProductImage(
+  @Param('id') productId: string,
+  @UploadedFile() file: Express.Multer.File,
+) {
+  const imageUrl =
+    await this.supabaseStorageService.uploadProductImage(
+      productId,
+      file,
+    );
+
+  await this.productsService.updateImageUrl(
+    productId,
+    imageUrl,
+  );
+
+  return {
+    message: 'Product image uploaded successfully',
+    imageUrl,
+  };
+}
 }

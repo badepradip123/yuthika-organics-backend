@@ -13,6 +13,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ShippingModule } from './shipping/shipping.module';
     OrdersModule,
     PaymentsModule,
     ShippingModule,
+    StorageModule,
   ],
   providers: [
     {

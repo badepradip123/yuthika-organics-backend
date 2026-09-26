@@ -216,6 +216,20 @@ export class ProductsService {
     return this.prisma.product.update({ where: { id }, data: { status: dto.status } });
   }
 
+  async updateImageUrl(
+  productId: string,
+  imageUrl: string,
+) {
+  return this.prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      imageUrl,
+    },
+  });
+}
+
   async archive(id: string) {
     return this.updateStatus(id, { status: 'INACTIVE' });
   }
